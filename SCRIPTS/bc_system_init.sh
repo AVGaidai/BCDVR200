@@ -28,10 +28,11 @@ END_FORMATTING="\033[0m"
 
 CONFIG_FILE="bc_system.cfg"
 
-
+# Checking for a config file.
+# If the config file doesn't exist it will be created,
+# but without parameters values, you need to set them yourself.
 if [[ ! -f $CONFIG_FILE ]]
 then
-
     echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
          "$FONT_BOLD$FONT_RED $0$END_FORMATTING:\n" \
          "\t- No such $FONT_INTALIC$FONT_BLUE$CONFIG_FILE$END_FORMATTING!\n" \
@@ -40,25 +41,100 @@ then
          "in according to the instructions specified in the comments to the" \
          "config file." 1>&2
 
+    echo -e " #\n" \
+         "# This is config file for blucherry system.\n" \
+         "#\n" \
+         "# Blucherry system includes two equivalent servers. Each server is connected\n" \
+         "# to the bluecherry (internal) network via device DEVICE_NAME defined in the\n" \
+         "# config file section marked as [INTERNAL].\n" \
+         "#\n" \
+         "# At any given time, only one server should be connected to the external network\n" \
+         "# via device DEVICE_NAME defined in the config file section marked as [EXTERNAL].\n" \
+         "# This connection has one or multiple ip-addresses (IPADDR=, IPADDR1=, ... , IPADDRN=).\n" \
+         "# For example, using multiple ip-addresses may be required to logically group devices\n" \
+         "# on the client side, or other porposes.\n" \
+         "#\n" \
+         "# The server that has an active external network connection is the MAJOR;\n" \
+         "# the other server is MINOR. These servers must have the ip-adresses IPADDR_MAJOR and\n" \
+         "# IPADDR_MINOR defined in the config file section marked as [INTERNAL]. Also in the same\n" \
+         "# section it's necessary to define the ip-address IPADDR_RESERVED (required for reconfiguration\n" \
+         "# the internal network when changing server roles). Ш\n" \
+         "# !!! NOTE !!!\n" \
+         "# 1. All ip-addresses specified in the config file must be defined in 'ip-address/prefix' format\n" \
+         "# (for example IPADDR=192.168.2.222/24).\n"\
+         "#\n" \
+         "# 2. The IPADDR_MAJOR, IPADDR_MINOR and IPADDR_RESERVED values must be the same on both servers,\n" \
+         "# respectively: the IPADDR_MAJOR value on the one server is qual to the IPADDR_MAJOR on the\n" \
+         "# other server, and o on.\n" \
+         "\n" \
+         "[INTERNAL]\n" \
+         "DEVICE_NAME=               # for example DEVICE_NAME=enp2s0\n" \
+         "IPADDR_MAJOR=              # for example IPADDR_MAJOR=192.168.2.222\n" \
+         "IPADDR_MINOR=              # for example IPADDR_MINOR=192.168.2.221\n" \
+         "IPADDR_RESERVED=           # for example IPADDR_RESERVED=192.168.223\n" \
+         "\n" \
+         "IPADDR_MAJOR=                       # for example =192.168.2.222\n" \
+         "IPADDR_MINOR=                       # for example =192.168.2.221\n" \
+         "IPADDR_RESERVED=                    # for example =192.168.2.223\n" > $CONFIG_FILE
+
+
     ################ TO DO ###############
     echo -e "CONFIG FILE CONTENT" > $CONFIG_FILE
     
     exit 1
-    
 fi
 
 
+# Scamm
 PARAMETERS=$(./scan_config_file.sh $CONFIG_FILE)
 
 if [[ $? > 0 ]]
 then
-    
     exit 2
-
 fi
 
 
-EXTERNAL_IPADDRS=$(./get_elements_by_pattern.sh "$PARAMETERS" EXTERNAL_IPADDR)
+
+while [[ $PARAMETERS != "" ]]
+do
+    SECTION=$(./get_config_last_section.sh "$PARAMETERS")
+    
+    if [[ $? > 0 ]]
+    then
+        break
+    fi
+    
+    SECTION_NAME=${SECTION%]*}
+    SECTION_NAME=${SECTION_NAME#*[}
+    
+    
+    case "$SECTION_NAME" in
+
+        "EXTERNAL" | "external" )
+            echo EXTERNAL
+        ;;
+         
+        "INTERNAL" | "internal" )
+            echo INTERNAL
+        ;;
+        
+        * )
+            echo UNKNOWN
+        ;;
+    esac
+        
+    
+    LENGTH=$(echo $PARAMETERS | wc -c)
+    LENGTH_SECTION=$(echo $SECTION | wc -c)
+    
+    let offset=$LENGTH-$LENGTH_SECTION
+    PARAMETERS=${PARAMETERS:0:$offset}
+done
+
+
+exit 0
+
+EXTERNAL_IPADDRS=$(echo $PARAMETERS | grep -wo "IPADDR[0-9]*=[0-9.]*")
 echo $EXTERNAL_IPADDRS
 
 exit 0
