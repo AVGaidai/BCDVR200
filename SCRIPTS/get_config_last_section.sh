@@ -28,38 +28,34 @@ END_FORMATTING="\033[0m"
 
 
 # Checking the number of script arguments
-if [[ $1 == "" || $2 == "" ]]
+if [[ $1 == "" ]]
 then
 
     echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
          "$FONT_BOLD$FONT_RED $0$END_FORMATTING:\n" \
          "\t- Not enough script arguments!\n" \
-         "\t- Script launch format:$FONT_BOLD$FONT_GREEN $0 PARAMETERS PATTERN IFS" \
-         "$END_FORMATTING\n" \
-         "\t $FONT_GREEN PARAMETERS$END_FORMATTING is a string of parametes with their values;\n" \
-         "\t $FONT_GREEN PATTERN$END_FORMATTING is a regular expression for searching parameters in STRING;\n" \
-         "\t $FONT_GREEN IFS$END_FORMATTING is a Input Field Separator (optional argument)." 1>&2
+         "\t- Script launch format:$FONT_BOLD$FONT_GREEN $0" \
+         "\"PARAMETERS\" $END_FORMATTING\n" \
+         "\t $FONT_GREEN PARAMETERS$END_FORMATTING is a sectioned string" \
+         "of parametes with their values." 1>&2
 
     exit 1
     
 fi
 
 PARAMETERS=$1
-PATTERN=$2
 
-IFS_BACKUP=$IFS
+# Rule for section name TO Do
+SECTION=$(echo $PARAMETERS | grep -o "\[[A-Za-z0-9._-]*\][^\[]*$")
 
-if [[ $3 != "" ]]
+if [[ $SECTION == "" ]]
 then
-
-    IFS=$3
-
-else
-
-    IFS=" \t"
+    
+    echo -e "Not such a section!" 1>&2
+    exit 2
     
 fi
 
-echo $PARAMETERS | grep $PATTERN
+echo $SECTION    
 
-IFS=$IFS_BACKUP
+exit 0
