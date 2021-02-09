@@ -55,17 +55,17 @@ then
          "# on the client side, or other porposes.\n" \
          "#\n" \
          "# The server that has an active external network connection is the MAJOR;\n" \
-         "# the other server is MINOR. These servers must have the ip-adresses IPADDR_MAJOR and\n" \
-         "# IPADDR_MINOR defined in the config file section marked as [INTERNAL]. Also in the same\n" \
-         "# section it's necessary to define the ip-address IPADDR_RESERVED (required for reconfiguration\n" \
-         "# the internal network when changing server roles). Ш\n" \
+         "# the other server is MINOR. These servers must have the ip-adresses IPADDR_MAJOR\n" \
+         "# and IPADDR_MINOR defined in the config file section marked as [INTERNAL].\n" \
+         "# Also in the same section it's necessary to define the ip-address IPADDR_RESERVED\n" \
+         "# (required for reconfiguration the internal network when changing server roles).\n" \
          "# !!! NOTE !!!\n" \
-         "# 1. All ip-addresses specified in the config file must be defined in 'ip-address/prefix' format\n" \
-         "# (for example IPADDR=192.168.2.222/24).\n"\
+         "# 1. All ip-addresses specified in the config file must be defined in\n" \
+         "# 'ip-address/prefix' format (for example IPADDR=192.168.2.222/24).\n"\
          "#\n" \
-         "# 2. The IPADDR_MAJOR, IPADDR_MINOR and IPADDR_RESERVED values must be the same on both servers,\n" \
-         "# respectively: the IPADDR_MAJOR value on the one server is qual to the IPADDR_MAJOR on the\n" \
-         "# other server, and o on.\n" \
+         "# 2. The IPADDR_MAJOR, IPADDR_MINOR and IPADDR_RESERVED values must be\n" \
+         "# the same on both servers, respectively: the IPADDR_MAJOR value on the one server\n" \
+         "# is qual to the IPADDR_MAJOR on the other server, and so on.\n" \
          "\n" \
          "[INTERNAL]\n" \
          "DEVICE_NAME=               # for example DEVICE_NAME=enp2s0\n" \
