@@ -56,6 +56,6 @@ then
     
 fi
 
-echo $SECTION    
+echo $SECTION
 
 exit 0
