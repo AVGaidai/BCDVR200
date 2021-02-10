@@ -61,6 +61,8 @@ fi
 
 
 # Printing all useful parameters from the config file
-cat $CONFIG_FILE | sed "s/\#.*//g" | sed "/^$/d"
+RESULT=$(cat $CONFIG_FILE | sed "s/\#.*//g" | sed "/^[ \t]*$/d")
+
+echo $RESULT
 
 exit 0
