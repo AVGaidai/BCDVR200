@@ -32,8 +32,18 @@ END_FORMATTING="\033[0m"
 
 
 
-function other_section_parser {
+# Handling the EXTERNAL/OPTIONAL config file section
+#
+# This function ...
+#
+# Input:
+#
+#
+# Output:
+#
+function other_section_handler {
 
+    # Checking number of function arguments
     if [[ $1 == "" || $2 == "" ]]
     then 
         
@@ -42,27 +52,34 @@ function other_section_parser {
             "\t- Not enough function arguments!\n" \
             "\t- Function invoke format:$FONT_BOLD$FONT_GREEN $FUNCNAME" \
             "\"SECTION_NAME\" \"SECTION_BODY\"$END_FORMATTING\n" \
-            "\t$FONT_GREEN SECTION_NAME$END_FORMATTING is a NAME of" \
-            "the config file section."
-            "\t$FONT_GREEN SECTION_BODY$END_FORMATTING is a body of" \
-            "the config file section." 1>&2
+            "\t $FONT_GREEN SECTION_NAME$END_FORMATTING is NAME of" \
+            "config file section.\n" \
+            "\t $FONT_GREEN SECTION_BODY$END_FORMATTING is body of" \
+            "config file section." 1>&2
     
         return 1
+        
     fi
 
     section_name=$1
     section_body=$2
-    #echo $section_body
-    device=$(echo $section_body | grep -wo "DEVICE_NAME=[A-Za-z0-9_-]*[ \t]*")
-    ipaddrs_list=$(echo $section_body | egrep -wo "IPADDR[0-9]*=[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}[ \t]*")
     
-    echo $device
+    # Getting DEVICE_NAME parameter
+    device=$(echo $section_body | grep -wo "DEVICE_NAME=[A-Za-z0-9_-]*[ \t]*")
     
     if [[ $device == "" ]]
     then
-        return 2
-    fi
     
+        echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
+            "$FONT_BOLD$FONT_RED $0:$FUNCNAME$END_FORMATTING:\n" \
+            "\t- No such$FONT_YELLOW DEVICE_NAME$END_FORMATTING" \
+            "parameter in$FONT_YELLOW [$section_name]$END_FORMATTING"\
+            "config file section!" 1>&2
+        
+        return 2
+        
+    fi
+ 
     # Getting DEVICE_NAME parameter value
     device=$(echo ${device#*DEVICE_NAME=})
     
@@ -71,14 +88,21 @@ function other_section_parser {
   
     if [[ $result == "" ]]
     then
-    ######## TO DO ##########
-        echo -e "No such $device device!"
+        
+        echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
+            "$FONT_BOLD$FONT_RED $0:$FUNCNAME$END_FORMATTING:\n" \
+            "\t- No such$FONT_YELLOW $device$END_FORMATTING device!" 1>&2
+
         return 3
     fi
-    
+
+    # Getting ip-addresses list from section
+    ipaddrs_list=$(echo $section_body | egrep -wo "IPADDR[0-9]*=[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}[ \t]*")    
+
     let i=0
     unset ipaddrs
     
+    # For each
     while [[ $ipaddrs_list != "" ]]
     do
 
@@ -94,8 +118,8 @@ function other_section_parser {
         ipaddrs[$i]=$(echo ${ipaddr#*=})
         echo $ipaddr_value
         
-        # Checking correctness of the ip-address and netmask format
-        #result=$(./check_ipaddr_format.sh $ipaddr_value)
+        # Validating ip-address and netmask format
+        ./validate_ipaddr_format.sh $ipaddr_value
         
         let i=i+1
         
@@ -108,9 +132,6 @@ function other_section_parser {
 }
 
 
-
-
-
 CONFIG_FILE="bc_system.cfg"
 
 # Checking for a config file.
@@ -120,9 +141,9 @@ if [[ ! -f $CONFIG_FILE ]]
 then
     echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
          "$FONT_BOLD$FONT_RED $0$END_FORMATTING:\n" \
-         "\t- No such $FONT_INTALIC$FONT_YELLOW$CONFIG_FILE$END_FORMATTING!\n" \
+         "\t- No such $FONT_YELLOW$CONFIG_FILE$END_FORMATTING!\n" \
          "NOTE: The config file will be automatically created in the" \
-         "$FONT_ITALIC$FONT_YELLOW$PWD$END_FORMATTING directory. It must be filled" \
+         "$FONT_YELLOW$PWD$END_FORMATTING directory. It must be filled" \
          "in according to the instructions specified in the comments to the" \
          "config file." 1>&2
 
@@ -136,7 +157,7 @@ then
          "# At any given time, only one server should be connected to the external network\n" \
          "# via device DEVICE_NAME defined in the config file section marked as [EXTERNAL].\n" \
          "# This connection has one or multiple ip-addresses (IPADDR=, IPADDR1=, ... , IPADDRN=).\n" \
-         "# For example, using multiple ip-addresses may be required to logically group devices\n" \
+         "# Using multiple ip-addresses may be required to logically group devices\n" \
          "# on the client side, or other porposes.\n" \
          "#\n" \
          "# The server that has an active external network connection is the MAJOR;\n" \
@@ -178,35 +199,44 @@ then
 fi
 
 
-# Scan
+# Scanning config file and getting parameters 
 PARAMETERS=$(./scan_config_file.sh $CONFIG_FILE)
 
 if [[ $? > 0 ]]
 then
+
     exit 2
+
 fi
 
 
+# Getting and handling each the config file section one by one
 while [[ $PARAMETERS != "" ]]
 do
+    
+    # Getting the config file last section
     SECTION=$(./get_config_last_section.sh "$PARAMETERS")
     
     if [[ $? > 0 ]]
     then
+
         break
+
     fi
 
 
-
+    # Getting the config file section name
     SECTION_NAME=${SECTION%]*}
     SECTION_NAME=${SECTION_NAME#*[}
 
+    # Getting the config file section body
     SECTION_BODY=$(echo ${SECTION#*]})
-        
+    
+    # Handling the config file section
     case "$SECTION_NAME" in
 
         "EXTERNAL" | "external" )
-            other_section_parser "$SECTION_NAME" "$SECTION_BODY"
+            other_section_handler "$SECTION_NAME" "$SECTION_BODY"
         ;;
          
         "INTERNAL" | "internal" )
@@ -215,7 +245,7 @@ do
         ;;
 
         "OPTIONAL" | "optional" )
-            other_section_parser "$SECTION_NAME" "$SECTION_BODY"
+            other_section_handler "$SECTION_NAME" "$SECTION_BODY"
         ;;
         
         * )
@@ -224,10 +254,10 @@ do
         
     esac        
 
-    LENGTH=$(echo $PARAMETERS | wc -c)
-    LENGTH_SECTION=$(echo $SECTION | wc -c)
+    let LENGTH=$(echo $PARAMETERS | wc -m)
+    let LENGTH_SECTION=$(echo $SECTION | wc -m)
     let offset=$LENGTH-$LENGTH_SECTION
-
+    
     PARAMETERS=${PARAMETERS:0:$offset}
     
 done
