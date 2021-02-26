@@ -14,7 +14,7 @@
 #####################################################################################
 
 
-# Following variables prefixed with  'FONT_' (and END_FORMATTING variable) are
+# Following variables prefixed with  'FONT_' (and the END_FORMATTING variable) are
 # escape sequences for formatting printout
 FONT_BOLD="\033[1m"
 FONT_ITALIC="\033[3m"
@@ -53,12 +53,12 @@ function other_section_handler {
          echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
             "$FONT_BOLD$FONT_RED$0:$FUNCNAME$END_FORMATTING:\n" \
             "\t- Not enough function arguments!\n" \
-            "\t- Function invoke format:$FONT_BOLD$FONT_GREEN $FUNCNAME" \
+            "\t- The function invoke format:$FONT_BOLD$FONT_GREEN $FUNCNAME" \
             "\"SECTION_NAME\" \"SECTION_BODY\"$END_FORMATTING\n" \
-            "\t $FONT_GREEN SECTION_NAME$END_FORMATTING is NAME of" \
-            "config file section.\n" \
-            "\t $FONT_GREEN SECTION_BODY$END_FORMATTING is body of" \
-            "config file section." 1>&2
+            "\t $FONT_GREEN SECTION_NAME$END_FORMATTING is the NAME of" \
+            "the config file section.\n" \
+            "\t $FONT_GREEN SECTION_BODY$END_FORMATTING is the body of" \
+            "the config file section." 1>&2
     
         return 1
         
@@ -66,7 +66,7 @@ function other_section_handler {
 
     section_name=$1
     section_body=$2
-    
+
     # Getting the DEVICE_NAME parameter
     device=$(echo $section_body | grep -wo "DEVICE_NAME=[A-Za-z0-9_-]*[ \t]*")
     
@@ -75,8 +75,8 @@ function other_section_handler {
     
         echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
             "$FONT_BOLD$FONT_RED$0:$FUNCNAME$END_FORMATTING:\n" \
-            "\t- No such$FONT_YELLOW DEVICE_NAME$END_FORMATTING" \
-            "parameter in$FONT_YELLOW [$section_name]$END_FORMATTING"\
+            "\t- No such the$FONT_YELLOW DEVICE_NAME$END_FORMATTING" \
+            "parameter in the $FONT_YELLOW [$section_name]$END_FORMATTING"\
             "config file section!" 1>&2
         
         return 2
@@ -86,7 +86,7 @@ function other_section_handler {
     # Getting the DEVICE_NAME parameter value
     device=$(echo ${device#*DEVICE_NAME=})
     
-    # Checking the device availability
+    # Checking device availability
     result=$(nmcli device | awk '{print $1}' | grep -wo $device)
   
     if [[ "$result" == "" ]]
@@ -94,36 +94,38 @@ function other_section_handler {
         
         echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
             "$FONT_BOLD$FONT_RED$0:$FUNCNAME$END_FORMATTING:\n" \
-            "\t- No such$FONT_YELLOW $device$END_FORMATTING device!" 1>&2
+            "\t- No such the$FONT_YELLOW $device$END_FORMATTING device!" 1>&2
 
         return 3
     fi
 
     # Checking the device for non-use
-    result=$(echo $USED_DEVICES | grep -wo "$device")    
+    result=$(echo $USED_DEVICES | grep -wo "$device")
      
-    if [[ "$result" == "" ]]
+    if [[ "$result" != "" ]]
     then
         
         echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
             "$FONT_BOLD$FONT_RED$0:$FUNCNAME$END_FORMATTING:\n" \
-            "\t- The $FONT_YELLOW$device$END_FORMATTING device!" 1>&2
+            "\t- The $FONT_YELLOW$device$END_FORMATTING device" \
+            "is already in use!" 1>&2
 
         return 4
     fi
 
     USED_DEVICES="$USED_DEVICES$device "
 
-    # Getting ip-addresses list from section
+    # Getting a list of IP-addresses from the section
     ipaddrs_list=$(echo $section_body | egrep -wo "IPADDR[0-9]*=[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}[ \t]*")    
 
     let i=0
     unset ipaddrs
     
-    # 
+    # Checking each IP-addresses
     while [[ "$ipaddrs_list" != "" ]]
     do
-
+        
+        # Getting the last IP-address from the list
         ipaddr=$(echo $ipaddrs_list | grep -wo "IPADDR[0-9]*=[0-9./]*$")
         
         if [[ "$ipaddr" == "" ]]
@@ -131,7 +133,7 @@ function other_section_handler {
             break
         fi
 
-        # Validating ip-address and netmask format
+        # Validating the format of the IP-address and its netmask 
         ./validate_ipaddr_format.sh $(echo ${ipaddr#*=})
 
         if [[ "$?" -gt 0 ]]
@@ -139,7 +141,7 @@ function other_section_handler {
             return 5
         fi
         
-        # Getting IPADDR parameter value
+        # Getting the IPADDR parameter value
         ipaddrs[$i]=$(echo ${ipaddr#*=})
 
         let length=$(echo $ipaddrs_list | wc -c)
@@ -152,6 +154,23 @@ function other_section_handler {
         
     done
     
+    # If the IPADDR parameter is not found in the config file section
+    if [[ $i -eq 0 ]]
+    then
+    
+        echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
+            "$FONT_BOLD$FONT_RED$0:$FUNCNAME$END_FORMATTING:\n" \
+            "\t- No such the$FONT_YELLOW IPADDR$END_FORMATTING" \
+            "parameter in the$FONT_YELLOW [$section_name]$END_FORMATTING" \
+            "config file section!" 1>&2
+
+        return 6
+    fi
+        
+    
+
+
+
     echo ${ipaddrs[*]}
     
     return 0
