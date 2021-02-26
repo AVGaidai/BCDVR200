@@ -76,7 +76,7 @@ function other_section_handler {
         echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
             "$FONT_BOLD$FONT_RED$0:$FUNCNAME$END_FORMATTING:\n" \
             "\t- No such the$FONT_YELLOW DEVICE_NAME$END_FORMATTING" \
-            "parameter in the $FONT_YELLOW [$section_name]$END_FORMATTING"\
+            "parameter in the$FONT_YELLOW [$section_name]$END_FORMATTING"\
             "config file section!" 1>&2
         
         return 2
@@ -133,7 +133,7 @@ function other_section_handler {
             break
         fi
 
-        # Validating the format of the IP-address and its netmask 
+        # Validating a format of the IP-address and its netmask 
         ./validate_ipaddr_format.sh $(echo ${ipaddr#*=})
 
         if [[ "$?" -gt 0 ]]
@@ -167,8 +167,33 @@ function other_section_handler {
         return 6
     fi
         
+    # Deleting the connection profile named '<SECTION NAME>-<ITS DEVICE>'
+    con=$(nmcli connection | awk '{print $1}' | grep -wo $section_name-$device)
     
+    if [[ "$con" != "" ]]
+    then
+        
+        result=$(nmcli connection delete $con)
+        
+        if [[ "$?" -ne 0 ]]
+        then
+            
+            echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
+                "$FONT_BOLD$FONT_RED$0:$FUNCNAME$END_FORMATTING:\n" \
+                "\t- The$FONT_YELLOW 'nmcli connection delete $con'$END_FORMATTING" \
+                "command failed:\n" \
+                "$FONT_BLUE$result$END_FORMATTING" 1>&2
+  
+            return 7
+        fi
+        
+    fi
 
+    # Creating the connection profile named '<SECTION NAME>-<ITS DEVICE>'
+
+# To add IP-addresses list from the section to the connection profile
+    con="$section_name-$device"
+    result=$(nmcli connection add con-name $con type ethernet ifname $device)
 
 
     echo ${ipaddrs[*]}
