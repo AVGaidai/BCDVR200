@@ -33,11 +33,11 @@ END_FORMATTING="\033[0m"
 
 
 # Checking number of script arguments
-if [[ $1 == "" ]]
+if [[ "$1" == "" ]]
 then
 
     echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
-         "$FONT_BOLD$FONT_RED $0$END_FORMATTING:\n" \
+         "$FONT_BOLD$FONT_RED$0$END_FORMATTING:\n" \
          "\t- Not enough script arguments!\n" \
          "\t- Script launch format:$FONT_BOLD$FONT_GREEN $0" \
          "\"CONFIG\" $END_FORMATTING\n" \
@@ -48,16 +48,16 @@ then
     
 fi
 
-CONFIG=$1
+CONFIG="$1"
 
 # Getting last section of config
 SECTION=$(echo $CONFIG | grep -o "\[[A-Za-z0-9._-]*\][^\[]*$")
 
-if [[ $SECTION == "" ]]
+if [[ "$SECTION" == "" ]]
 then
     
     echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
-         "$FONT_BOLD$FONT_RED $0$END_FORMATTING:\n" \
+         "$FONT_BOLD$FONT_RED$0$END_FORMATTING:\n" \
          "\t- Section in config not found!" 1>&2
 
     exit 2

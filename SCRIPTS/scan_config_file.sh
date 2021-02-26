@@ -33,28 +33,29 @@ END_FORMATTING="\033[0m"
 
 
 # Checking number of script arguments
-if [[ $1 == "" ]]
+if [[ "$1" == "" ]]
 then
 
     echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
-         "$FONT_BOLD$FONT_RED $0$END_FORMATTING:\n" \
+         "$FONT_BOLD$FONT_RED$0$END_FORMATTING:\n" \
          "\t- Not enough script arguments!\n" \
          "\t- Script launch format:$FONT_BOLD$FONT_GREEN $0" \
          "CONFIG_FILE$END_FORMATTING\n" \
-         "\t $FONT_GREEN CONFIG_FILE is path to config file" 1>&2
+         "\t $FONT_GREEN CONFIG_FILE$END_FORMATTING is path to" \
+         "config file." 1>&2
          
     exit 1
     
 fi
 
-CONFIG_FILE=$1
+CONFIG_FILE="$1"
 
 # Checking if config file exists
-if [[ ! -f $CONFIG_FILE ]]
+if [[ ! -f "$CONFIG_FILE" ]]
 then
 
     echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
-         "$FONT_BOLD$FONT_RED $0$END_FORMATTING:\n" \
+         "$FONT_BOLD$FONT_RED$0$END_FORMATTING:\n" \
          "\t- No such config file $FONT_YELLOW$CONFIG_FILE$END_FORMATTING!\n" 1>&2 
 
     exit 2
