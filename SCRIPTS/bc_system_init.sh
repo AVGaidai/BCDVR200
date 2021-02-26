@@ -28,6 +28,9 @@ END_FORMATTING="\033[0m"
 
 
 
+# Used devices
+USED_DEVICES=""
+
 #function internal_section_parser {}
 
 
@@ -43,12 +46,12 @@ END_FORMATTING="\033[0m"
 #
 function other_section_handler {
 
-    # Checking number of function arguments
-    if [[ $1 == "" || $2 == "" ]]
+    # Checking the number of function arguments
+    if [[ "$1" == "" || "$2" == "" ]]
     then 
         
          echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
-            "$FONT_BOLD$FONT_RED $0:$FUNCNAME$END_FORMATTING:\n" \
+            "$FONT_BOLD$FONT_RED$0:$FUNCNAME$END_FORMATTING:\n" \
             "\t- Not enough function arguments!\n" \
             "\t- Function invoke format:$FONT_BOLD$FONT_GREEN $FUNCNAME" \
             "\"SECTION_NAME\" \"SECTION_BODY\"$END_FORMATTING\n" \
@@ -64,14 +67,14 @@ function other_section_handler {
     section_name=$1
     section_body=$2
     
-    # Getting DEVICE_NAME parameter
+    # Getting the DEVICE_NAME parameter
     device=$(echo $section_body | grep -wo "DEVICE_NAME=[A-Za-z0-9_-]*[ \t]*")
     
-    if [[ $device == "" ]]
+    if [[ "$device" == "" ]]
     then
     
         echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
-            "$FONT_BOLD$FONT_RED $0:$FUNCNAME$END_FORMATTING:\n" \
+            "$FONT_BOLD$FONT_RED$0:$FUNCNAME$END_FORMATTING:\n" \
             "\t- No such$FONT_YELLOW DEVICE_NAME$END_FORMATTING" \
             "parameter in$FONT_YELLOW [$section_name]$END_FORMATTING"\
             "config file section!" 1>&2
@@ -80,21 +83,36 @@ function other_section_handler {
         
     fi
  
-    # Getting DEVICE_NAME parameter value
+    # Getting the DEVICE_NAME parameter value
     device=$(echo ${device#*DEVICE_NAME=})
     
-    # Checking device availability
+    # Checking the device availability
     result=$(nmcli device | awk '{print $1}' | grep -wo $device)
   
-    if [[ $result == "" ]]
+    if [[ "$result" == "" ]]
     then
         
         echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
-            "$FONT_BOLD$FONT_RED $0:$FUNCNAME$END_FORMATTING:\n" \
+            "$FONT_BOLD$FONT_RED$0:$FUNCNAME$END_FORMATTING:\n" \
             "\t- No such$FONT_YELLOW $device$END_FORMATTING device!" 1>&2
 
         return 3
     fi
+
+    # Checking the device for non-use
+    result=$(echo $USED_DEVICES | grep -wo "$device")    
+     
+    if [[ "$result" == "" ]]
+    then
+        
+        echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
+            "$FONT_BOLD$FONT_RED$0:$FUNCNAME$END_FORMATTING:\n" \
+            "\t- The $FONT_YELLOW$device$END_FORMATTING device!" 1>&2
+
+        return 4
+    fi
+
+    USED_DEVICES="$USED_DEVICES$device "
 
     # Getting ip-addresses list from section
     ipaddrs_list=$(echo $section_body | egrep -wo "IPADDR[0-9]*=[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}[ \t]*")    
@@ -102,31 +120,39 @@ function other_section_handler {
     let i=0
     unset ipaddrs
     
-    # For each
-    while [[ $ipaddrs_list != "" ]]
+    # 
+    while [[ "$ipaddrs_list" != "" ]]
     do
 
         ipaddr=$(echo $ipaddrs_list | grep -wo "IPADDR[0-9]*=[0-9./]*$")
-      
-        length=$(echo $ipaddrs_list | wc -c)
-        length_ipaddr=$(echo $ipaddr | wc -c)
+        
+        if [[ "$ipaddr" == "" ]]
+        then
+            break
+        fi
+
+        # Validating ip-address and netmask format
+        ./validate_ipaddr_format.sh $(echo ${ipaddr#*=})
+
+        if [[ "$?" -gt 0 ]]
+        then
+            return 5
+        fi
+        
+        # Getting IPADDR parameter value
+        ipaddrs[$i]=$(echo ${ipaddr#*=})
+
+        let length=$(echo $ipaddrs_list | wc -c)
+        let length_ipaddr=$(echo $ipaddr | wc -c)
         let offset=$length-$length_ipaddr
 
         ipaddrs_list=${ipaddrs_list:0:$offset}
-
-        # Getting IPADDR parameter value
-        ipaddrs[$i]=$(echo ${ipaddr#*=})
-        echo $ipaddr_value
-        
-        # Validating ip-address and netmask format
-        ./validate_ipaddr_format.sh $ipaddr_value
-        
+                
         let i=i+1
         
     done
     
-    echo 0: ${ipaddrs[0]}
-    echo 1: ${ipaddrs[1]}
+    echo ${ipaddrs[*]}
     
     return 0
 }
@@ -137,10 +163,10 @@ CONFIG_FILE="bc_system.cfg"
 # Checking for a config file.
 # If the config file doesn't exist it will be created,
 # but without parameters values, you need to set them yourself.
-if [[ ! -f $CONFIG_FILE ]]
+if [[ ! -f "$CONFIG_FILE" ]]
 then
     echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
-         "$FONT_BOLD$FONT_RED $0$END_FORMATTING:\n" \
+         "$FONT_BOLD$FONT_RED$0$END_FORMATTING:\n" \
          "\t- No such $FONT_YELLOW$CONFIG_FILE$END_FORMATTING!\n" \
          "NOTE: The config file will be automatically created in the" \
          "$FONT_YELLOW$PWD$END_FORMATTING directory. It must be filled" \
@@ -202,7 +228,7 @@ fi
 # Scanning config file and getting parameters 
 PARAMETERS=$(./scan_config_file.sh $CONFIG_FILE)
 
-if [[ $? > 0 ]]
+if [[ "$?" -gt 0 ]]
 then
 
     exit 2
@@ -211,17 +237,15 @@ fi
 
 
 # Getting and handling each the config file section one by one
-while [[ $PARAMETERS != "" ]]
+while [[ "$PARAMETERS" != "" ]]
 do
     
     # Getting the config file last section
     SECTION=$(./get_config_last_section.sh "$PARAMETERS")
     
-    if [[ $? > 0 ]]
+    if [[ "$?" > 0 ]]
     then
-
         break
-
     fi
 
 
@@ -235,17 +259,25 @@ do
     # Handling the config file section
     case "$SECTION_NAME" in
 
-        "EXTERNAL" | "external" )
+        "EXTERNAL" | "external" | "OPTIONAL" | "optional" )
             other_section_handler "$SECTION_NAME" "$SECTION_BODY"
+            
+            if [[ "$?" -gt 0 ]]
+            then
+            
+                echo -e " [$FONT_BOLD$FONT_YELLOW WARNING $END_FORMATTING]:" \
+                    "$FONT_BOLD$FONT_RED$0$END_FORMATTING:\n" \
+                    "\t- Check the config file content!\n" \
+                    "\t  Config file: $FONT_YELLOW$CONFIG_FILE$END_FORMATTING\n" \
+                    "\t  Section:$FONT_YELLOW [$SECTION_NAME]$END_FORMATTING"  1>&2
+                exit 3
+            
+            fi
         ;;
          
         "INTERNAL" | "internal" )
             echo INTERNAL
             
-        ;;
-
-        "OPTIONAL" | "optional" )
-            other_section_handler "$SECTION_NAME" "$SECTION_BODY"
         ;;
         
         * )
